@@ -1,0 +1,44 @@
+name: Deploy ASP.NET Core WebApp
+
+on: 
+  push:
+    branches:
+      - main
+
+env:
+  AZURE_WEBAPP_NAME: az204hikumaweb
+  AZURE_WEBAPP_PATH: '.'
+  DOTNET_VERSION: '5.0.101'
+
+permissions:
+      id-token: write
+      contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.7.0
+
+      - name: Login via AzureCLI
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: dotnet build and publish
+        run: |
+          dotnet build --configuration release 
+          dotnet publish -c Release -o '${{ env.AZURE_WEBAPP_PATH }}/myapp'
+
+      - name: 'Deploy to Azure App Service'
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: '${{ env.AZURE_WEBAPP_PATH }}/myapp'
